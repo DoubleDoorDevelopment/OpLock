@@ -1,0 +1,19 @@
+[
+  {
+    "modid": "oplock",
+    "name": "Oplock",
+    "description": "Locks down a server to only specific people. Ops!",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [
+      "DoubleDoorDev",
+      "Claycorp"
+    ],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
