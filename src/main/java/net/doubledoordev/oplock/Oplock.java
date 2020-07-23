@@ -97,9 +97,10 @@ public class Oplock
             {
                 EntityPlayerMP player = playerList.getPlayerByUUID(uuid);
 
-                if (delayedKickQueue.get(uuid) == currentTick)
+                if (delayedKickQueue.get(uuid) <= currentTick)
                 {
                     playerList.getPlayerByUUID(player.getUniqueID()).connection.disconnect(new TextComponentString(ModConfig.loginDisconnectMessage));
+                    delayedKickQueue.remove(uuid);
                 }
             }
         }
