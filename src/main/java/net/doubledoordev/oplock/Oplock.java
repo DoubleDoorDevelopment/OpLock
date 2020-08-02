@@ -3,84 +3,67 @@ package net.doubledoordev.oplock;
 import java.util.HashMap;
 import java.util.UUID;
 
-import net.minecraft.command.CommandHandler;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.management.OpEntry;
 import net.minecraft.server.management.PlayerList;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.PlayerEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
+import net.minecraftforge.fml.server.ServerLifecycleHooks;
 
-
-@Mod(
-        modid = Oplock.MOD_ID,
-        name = Oplock.MOD_NAME,
-        version = Oplock.VERSION,
-        serverSideOnly = true,
-        acceptableRemoteVersions = "*"
-)
+// The value here should match an entry in the META-INF/mods.toml file
+@Mod("oplock")
 public class Oplock
 {
 
-    public static final String MOD_ID = "oplock";
-    public static final String MOD_NAME = "OpLock";
-    public static final String VERSION = "1.0.1";
-    /**
-     * This is the instance of your mod as created by Forge. It will never be null.
-     */
-    @Mod.Instance(MOD_ID)
+    // Directly reference a log4j logger.
+    private static final Logger LOGGER = LogManager.getLogger();
     public static Oplock INSTANCE;
     public boolean serverLockStatus;
     public HashMap<UUID, Integer> delayedKickQueue = new HashMap<>();
 
-    /**
-     * This is the first initialization event. Register tile entities here.
-     * The registry events below will have fired prior to entry to this method.
-     */
-    @Mod.EventHandler
-    public void preinit(FMLPreInitializationEvent event)
+    public Oplock()
     {
-        serverLockStatus = ModConfig.defaultState;
+
+        // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
+        INSTANCE = this;
     }
 
-    /**
-     * This is the second initialization event. Register custom recipes
-     */
-    @Mod.EventHandler
-    public void serverStating(FMLServerStartingEvent event)
+    @SubscribeEvent
+    public void serverStarting(FMLServerStartingEvent event)
     {
-        CommandHandler commandHandler = (CommandHandler) event.getServer().getCommandManager();
-        commandHandler.registerCommand(new ServerLockCommand());
+        CommandOpLock.register(event.getCommandDispatcher());
     }
 
     @SubscribeEvent
     public void onJoin(PlayerEvent.PlayerLoggedInEvent event)
     {
-        EntityPlayer player = event.player;
-        MinecraftServer serverInstace = FMLCommonHandler.instance().getMinecraftServerInstance();
-        PlayerList playerList = serverInstace.getPlayerList();
+        PlayerEntity player = event.getPlayer();
+        MinecraftServer serverInstace = ServerLifecycleHooks.getCurrentServer();
+        OpEntry opEntry = serverInstace.getPlayerList().getOppedPlayers().getEntry(player.getGameProfile());
 
-        if (serverLockStatus && playerList.getOppedPlayers().getPermissionLevel(player.getGameProfile()) <= ModConfig.allowedPermissionLevel)
+        if (serverLockStatus && opEntry != null && opEntry.getPermissionLevel() <= OpLockConfig.GENERAL.allowedPermissionLevel.get())
         {
-            delayedKickQueue.put(player.getUniqueID(), serverInstace.getTickCounter() + ModConfig.tickDelay);
+            delayedKickQueue.put(player.getUniqueID(), serverInstace.getTickCounter() + OpLockConfig.GENERAL.tickDelay.get());
         }
 
-        if (ModConfig.chatJoinNotice && playerList.getOppedPlayers().getPermissionLevel(player.getGameProfile()) >= ModConfig.allowedPermissionLevel)
+        if (OpLockConfig.GENERAL.chatJoinNotice.get() && opEntry != null && opEntry.getPermissionLevel() >= OpLockConfig.GENERAL.allowedPermissionLevel.get())
         {
             if (serverLockStatus)
-                player.sendMessage(new TextComponentString(ModConfig.messages.chatJoinMessageOn).setStyle(new Style().setColor(TextFormatting.RED)));
+                player.sendMessage(new StringTextComponent(OpLockConfig.GENERAL.chatJoinMessageOn.get()).setStyle(new Style().setColor(TextFormatting.RED)));
             else
-                player.sendMessage(new TextComponentString(ModConfig.messages.chatJoinMessageOff).setStyle(new Style().setColor(TextFormatting.GREEN).setBold(true)));
+                player.sendMessage(new StringTextComponent(OpLockConfig.GENERAL.chatJoinMessageOff.get()).setStyle(new Style().setColor(TextFormatting.GREEN).setBold(true)));
         }
     }
 
@@ -89,17 +72,23 @@ public class Oplock
     {
         if (!delayedKickQueue.isEmpty() && event.phase == TickEvent.Phase.END)
         {
-            MinecraftServer serverInstace = FMLCommonHandler.instance().getMinecraftServerInstance();
+            MinecraftServer serverInstace = ServerLifecycleHooks.getCurrentServer();
             PlayerList playerList = serverInstace.getPlayerList();
 
             int currentTick = serverInstace.getTickCounter();
             for (UUID uuid : delayedKickQueue.keySet())
             {
-                EntityPlayerMP player = playerList.getPlayerByUUID(uuid);
+                PlayerEntity player = playerList.getPlayerByUUID(uuid);
 
                 if (delayedKickQueue.get(uuid) <= currentTick)
                 {
-                    playerList.getPlayerByUUID(player.getUniqueID()).connection.disconnect(new TextComponentString(ModConfig.loginDisconnectMessage));
+                    ServerPlayerEntity serverPlayer = null;
+                    if (player != null)
+                        serverPlayer = playerList.getPlayerByUUID(player.getUniqueID());
+                    if (serverPlayer != null)
+                    {
+                        serverPlayer.connection.disconnect(new StringTextComponent(OpLockConfig.GENERAL.loginDisconnectMessage.get()));
+                    }
                     delayedKickQueue.remove(uuid);
                 }
             }
