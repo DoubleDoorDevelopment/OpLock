@@ -6,10 +6,7 @@ import net.minecraft.command.arguments.MessageArgument;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.OpEntry;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.*;
 import net.minecraftforge.fml.server.ServerLifecycleHooks;
 
 import com.mojang.brigadier.CommandDispatcher;
@@ -79,7 +76,7 @@ public class CommandOpLock
             if (shouldKick)
                 kickInvalidPlayers(source, message);
             getStatus(source);
-            notifyPlayers(new StringTextComponent(OpLockConfig.GENERAL.chatOnNotificationMessage.get()).setStyle(new Style().setColor(TextFormatting.RED).setBold(true)), customMessage);
+            notifyPlayers(new StringTextComponent(OpLockConfig.GENERAL.chatOnNotificationMessage.get()).func_230530_a_(Style.field_240709_b_.func_240713_a_(true).func_240718_a_(Color.func_240744_a_(TextFormatting.RED))), customMessage);
             return 1;
         }
     }
@@ -88,7 +85,7 @@ public class CommandOpLock
     {
         Oplock.INSTANCE.serverLockStatus = false;
         getStatus(source);
-        notifyPlayers(new StringTextComponent(OpLockConfig.GENERAL.chatOffNotificationMessage.get()).setStyle(new Style().setColor(TextFormatting.GREEN).setBold(true)), null);
+        notifyPlayers(new StringTextComponent(OpLockConfig.GENERAL.chatOffNotificationMessage.get()).func_230530_a_(Style.field_240709_b_.func_240713_a_(true).func_240718_a_(Color.func_240744_a_(TextFormatting.GREEN))), null);
         return 1;
     }
 
@@ -109,14 +106,14 @@ public class CommandOpLock
                 }
                 else
                 {
-                    player.connection.disconnect(new StringTextComponent(OpLockConfig.GENERAL.kickDisconnectMessage.get()).setStyle(new Style().setColor(TextFormatting.RED).setBold(true)));
+                    player.connection.disconnect(new StringTextComponent(OpLockConfig.GENERAL.kickDisconnectMessage.get()).func_230530_a_(Style.field_240709_b_.func_240713_a_(true).func_240718_a_(Color.func_240744_a_(TextFormatting.RED))));
                 }
                 playersKicked++;
             }
         }
 
         getStatus(source);
-        source.sendFeedback(new StringTextComponent(OpLockConfig.GENERAL.kickedPlayerCountMessage.get()).appendText(String.valueOf(playersKicked)), true);
+        source.sendFeedback(new StringTextComponent(OpLockConfig.GENERAL.kickedPlayerCountMessage.get()).func_240702_b_(String.valueOf(playersKicked)), true);
         return 1;
     }
 
@@ -129,11 +126,11 @@ public class CommandOpLock
             OpEntry target = server.getPlayerList().getOppedPlayers().getEntry(player.getGameProfile());
 
             if (target == null || target.getPermissionLevel() < OpLockConfig.GENERAL.allowedPermissionLevel.get())
-                player.sendMessage(message);
+                player.sendMessage(message, player.getUniqueID());
 
             if (customMessage != null)
             {
-                player.sendMessage(new StringTextComponent("<OpLock> ").setStyle(new Style().setColor(TextFormatting.AQUA).setBold(true)).appendSibling(customMessage));
+                player.sendMessage(new StringTextComponent("<OpLock> ").func_230530_a_(Style.field_240709_b_.func_240713_a_(true).func_240718_a_(Color.func_240744_a_(TextFormatting.AQUA))).func_230529_a_(customMessage), player.getUniqueID());
             }
         }
     }

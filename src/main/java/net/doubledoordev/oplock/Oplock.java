@@ -10,15 +10,16 @@ import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.OpEntry;
 import net.minecraft.server.management.PlayerList;
+import net.minecraft.util.text.Color;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 import net.minecraftforge.fml.server.ServerLifecycleHooks;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -41,9 +42,9 @@ public class Oplock
     }
 
     @SubscribeEvent
-    public void serverStarting(FMLServerStartingEvent event)
+    public void onCommandsRegister(RegisterCommandsEvent event)
     {
-        CommandOpLock.register(event.getCommandDispatcher());
+        CommandOpLock.register(event.getDispatcher());
     }
 
     @SubscribeEvent
@@ -61,9 +62,9 @@ public class Oplock
         if (OpLockConfig.GENERAL.chatJoinNotice.get() && opEntry != null && opEntry.getPermissionLevel() >= OpLockConfig.GENERAL.allowedPermissionLevel.get())
         {
             if (serverLockStatus)
-                player.sendMessage(new StringTextComponent(OpLockConfig.GENERAL.chatJoinMessageOn.get()).setStyle(new Style().setColor(TextFormatting.RED)));
+                player.sendMessage(new StringTextComponent(OpLockConfig.GENERAL.chatJoinMessageOn.get()).func_230530_a_(Style.field_240709_b_.func_240718_a_(Color.func_240744_a_(TextFormatting.RED))), player.getUniqueID());
             else
-                player.sendMessage(new StringTextComponent(OpLockConfig.GENERAL.chatJoinMessageOff.get()).setStyle(new Style().setColor(TextFormatting.GREEN).setBold(true)));
+                player.sendMessage(new StringTextComponent(OpLockConfig.GENERAL.chatJoinMessageOff.get()).func_230530_a_(Style.field_240709_b_.func_240713_a_(true).func_240718_a_(Color.func_240744_a_(TextFormatting.GREEN))), player.getUniqueID());
         }
     }
 
